@@ -17,14 +17,17 @@ const checkHttp = async url => {
 	let response;
 	try {
 		response = await got(url, {rejectUnauthorized: false});
-	} catch (_) {
-		return false;
+	} catch (error) {
+		return error.response.body;
 	}
 
 	if (response.headers && response.headers.location) {
 		const url = new URL(response.headers.location);
 		const hostname = url.hostname.replace(/^\[/, '').replace(/\]$/, ''); // Strip [] from IPv6
-		return !routerIps.has(hostname);
+
+		if (routerIps.has(hostname)) {
+			throw "Destination found in router IPs list";
+		}
 	}
 
 	return true;
@@ -39,28 +42,35 @@ const isTargetReachable = async target => {
 		url.port = url.protocol === 'http:' ? 80 : 443;
 	}
 
-	let address;
-	try {
-		address = await getAddress(url.hostname);
-	} catch (_) {
-		return false;
-	}
+	const address = await getAddress(url.hostname);
 
 	if (!address || routerIps.has(address)) {
-		return false;
+		throw 'Address not found!';
 	}
 
 	if ([80, 443].includes(url.port)) {
 		return checkHttp(url.toString());
 	}
 
-	return isPortReachable(url.port, {host: address});
+	if (!isPortReachable(url.port, { host: address })) {
+		throw "Port not reachable";
+	}
+
+	return true;
 };
 
 module.exports = async (destinations, options) => {
 	options = {...options};
 	options.timeout = typeof options.timeout === 'number' ? options.timeout : 5000;
 
-	const promise = pAny(arrify(destinations).map(isTargetReachable));
-	return pTimeout(promise, options.timeout).catch(() => false);
+	try {
+		const promise = pAny(arrify(destinations).map(isTargetReachable));
+		return pTimeout(promise, options.timeout);
+	} catch (e) {
+		if (options.throw === true) {
+			throw e;
+		}
+
+		return false;
+	}
 };
