@@ -68,16 +68,18 @@ module.exports = async (destinations, options) => {
 	options = {...options};
 	options.timeout = typeof options.timeout === 'number' ? options.timeout : 5000;
 
-	try {
-		const promise = pAny(arrify(destinations).map(isTargetReachable));
-		return pTimeout(promise, options.timeout).catch(e => {
-			throw "Timeout exceeded";
-		});
-	} catch (e) {
+	const promise = pAny(arrify(destinations).map(isTargetReachable));
+	return pTimeout(promise, options.timeout).catch(e => {
 		if (options.throw === true) {
+			if (Symbol.iterator in Object(e)) {
+				for (const error of e) {
+					throw error;
+				}
+			}
+
 			throw e;
 		}
 
 		return false;
-	}
+	});
 };
