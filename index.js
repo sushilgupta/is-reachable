@@ -21,9 +21,9 @@ const checkHttp = async url => {
 		});
 	} catch (error) {
 		if (error.statusMessage) {
-			return error.statusMessage;
+			throw error.statusMessage;
 		}
-		return error;
+		throw "Unknown error";
 	}
 
 	if (response.headers && response.headers.location) {
