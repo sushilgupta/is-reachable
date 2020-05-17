@@ -65,7 +65,9 @@ module.exports = async (destinations, options) => {
 
 	try {
 		const promise = pAny(arrify(destinations).map(isTargetReachable));
-		return pTimeout(promise, options.timeout);
+		return pTimeout(promise, options.timeout).catch(e => {
+			throw "Timeout exceeded";
+		});
 	} catch (e) {
 		if (options.throw === true) {
 			throw e;
