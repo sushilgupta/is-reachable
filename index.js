@@ -16,9 +16,15 @@ const dnsLookupP = promisify(dns.lookup);
 const checkHttp = async url => {
 	let response;
 	try {
-		response = await got(url, {rejectUnauthorized: false});
+		response = await got(url, {
+			rejectUnauthorized: false
+		});
 	} catch (error) {
-		return error.response.body;
+		if (error.statusMessage) {
+			return error.statusMessage;
+		}
+		return error;
+	}
 	}
 
 	if (response.headers && response.headers.location) {
