@@ -25,7 +25,6 @@ const checkHttp = async url => {
 		}
 		return error;
 	}
-	}
 
 	if (response.headers && response.headers.location) {
 		const url = new URL(response.headers.location);
